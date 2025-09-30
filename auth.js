@@ -1,6 +1,7 @@
 // auth.js
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -15,6 +16,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     // 1️⃣ Sign-in callback: create user if not exists
     async signIn({ user, profile }) {
       try {
+        await connectDB();
         let existingUser = await User.findOne({ email: user.email });
         if (!existingUser) {
           existingUser = await User.create({
