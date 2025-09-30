@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 let isConnected = false; // track connection state
 
-export async function connectDB() {
+export default async function connectDB() {
   if (isConnected) return;
 
   try {
@@ -11,7 +11,7 @@ export async function connectDB() {
     });
 
     isConnected = true;
-    cconsole.log(`Database connected successfully on ${conn.connection.host}.`);
+    console.log(`Database connected successfully on ${conn.connection.host}.`);
   } catch (err) {
     console.error("Database connection error:", err);
   }

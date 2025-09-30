@@ -7,7 +7,7 @@ export default function GoogleAuthButton() {
   return (
     <button
       className="w-full border rounded-md px-4 py-2 shadow-md cursor-pointer hover:bg-background-secondary flex items-center justify-center gap-2 focus:outline-none"
-      onClick={() => signIn("google")}
+      onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
     >
       <div className="w-5 h-5 relative">
         <Image

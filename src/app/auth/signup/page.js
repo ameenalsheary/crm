@@ -1,7 +1,16 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+
+import { auth } from "../../../../auth"
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 
-export default function SignUp() {
+export default async function SignUp() {
+  const session = await auth();
+
+  if (session?.user) {
+    redirect("/dashboard");
+  }
+
   return (
     <div className="bg-background-secondary">
       <div className="container h-[100vh] mx-auto flex flex-col justify-center items-center">
