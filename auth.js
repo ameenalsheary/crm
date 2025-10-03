@@ -1,6 +1,8 @@
-// auth.js
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+
 import connectDB from "@/lib/mongodb";
 import User from "@/models/User";
 
@@ -10,45 +12,70 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
+    CredentialsProvider({
+      name: "Credentials",
+      credentials: {
+        email: { label: "Email", type: "text" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        await connectDB();
+
+        const user = await User.findOne({ email: credentials.email });
+
+        if (
+          !user ||
+          !(await bcrypt.compare(credentials.password, user.password || ""))
+        ) {
+          return false;
+        }
+
+        return {
+          id: user._id.toString(),
+          name: `${user.firstName} ${user.lastName}`,
+          email: user.email,
+          role: user.role,
+        };
+      },
+    }),
   ],
   secret: process.env.NEXTAUTH_SECRET,
+  session: {
+    strategy: "jwt",
+    maxAge: 60 * 60 * 24 * 90,
+  },
   callbacks: {
-    // 1️⃣ Sign-in callback: create user if not exists
-    async signIn({ user, profile }) {
+    async signIn({ user, profile, account }) {
       try {
         await connectDB();
-        let existingUser = await User.findOne({ email: user.email });
-        if (!existingUser) {
-          existingUser = await User.create({
-            firstName: profile.given_name || "User",
-            lastName: profile.family_name || "Private",
-            email: user.email,
-          });
+        if (account.provider === "google") {
+          let existingUser = await User.findOne({ email: user.email });
+          if (!existingUser) {
+            existingUser = await User.create({
+              firstName: profile.given_name || "User",
+              lastName: profile.family_name || "Private",
+              email: user.email,
+            });
+          }
+          user.id = existingUser._id.toString();
+          user.role = existingUser.role;
         }
-        // Attach DB user info to user object for JWT callback
-        user.id = existingUser._id.toString();
-        user.role = existingUser.role;
-      } catch (error) {
-        console.error("Error in signIn callback:", error);
-        return false; // Prevent sign-in on error
+      } catch (err) {
+        console.error("Error in signIn callback:", err);
+        return false;
       }
       return true;
     },
-
-    // 2️⃣ JWT callback: store role once in token
     async jwt({ token, user }) {
       if (user) {
-        // Only set role and id when user signs in
-        token.role = user.role;
         token.id = user.id;
+        token.role = user.role;
       }
       return token;
     },
-
-    // 3️⃣ Session callback: expose role and id to client
     async session({ session, token }) {
-      session.user.role = token.role;
       session.user.id = token.id;
+      session.user.role = token.role;
       return session;
     },
   },

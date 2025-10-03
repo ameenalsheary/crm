@@ -14,14 +14,17 @@ export default async function Dashboard() {
 
   return (
     <div className="flex flex-col justify-center items-center gap-2 min-h-screen">
-      <Image
-        src={user.image}
-        width={100}
-        height={100}
-        alt="User profile picture"
-        priority
-        className="rounded-full mb-4"
-      />
+      {user.image && (
+        <Image
+          src={user.image}
+          width={100}
+          height={100}
+          alt="User profile picture"
+          priority
+          className="rounded-full mb-4"
+        />
+      )}
+
       <h1 className="text-2xl">
         Welcome, <span className="font-bold">{user.name}</span>{" "}
       </h1>

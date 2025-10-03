@@ -1,27 +1,28 @@
+"use client";
+
 import Link from "next/link";
-import { redirect } from "next/navigation";
+import { Formik, Form, Field, ErrorMessage } from "formik";
+import { useRouter } from "next/navigation";
 
-import { auth } from "../../../../auth";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
+import { signIn } from "@/actions/auth";
+import { signInSchema } from "@/lib/validation";
 
-export default async function SignIp() {
-  const session = await auth();
-
-  if (session?.user) {
-    redirect("/dashboard");
-  }
+export default function SignInPage() {
+  const router = useRouter();
 
   return (
     <div className="bg-background-secondary">
       <div className="container h-[100vh] mx-auto flex flex-col justify-center items-center">
-        <div className="bg-background rounded-md shadow-md w-full md:w-[500px] flex flex-col items-center gap-4 p-4">
+        <div className="bg-background rounded-md shadow-md w-full md:w-[500px] flex flex-col items-center gap-4 p-4 relative overflow-hidden">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-bold text-center">Welcome back</h1>
+            <h1 className="text-2xl font-bold text-center">Sign in</h1>
           </div>
 
           {/* Google Auth Button */}
           <GoogleAuthButton />
 
+          {/* Divider */}
           <div className="relative w-full">
             <div className="absolute inset-0 flex items-center">
               <div className="w-full border-t" />
@@ -34,52 +35,87 @@ export default async function SignIp() {
           </div>
 
           {/* Form */}
-          <form className="w-full flex flex-col gap-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1">
-                Email
-              </label>
-              <input
-                type="email"
-                id="email"
-                name="email"
-                placeholder="Email"
-                className="input"
-              />
-            </div>
+          <Formik
+            initialValues={{ email: "", password: "" }}
+            validationSchema={signInSchema}
+            onSubmit={async (values, { setStatus }) => {
+              setStatus(null); // reset error
 
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium mb-1"
-              >
-                Password
-              </label>
-              <input
-                type="password"
-                id="password"
-                name="password"
-                placeholder="Password"
-                className="input"
-              />
-            </div>
+              const formData = new FormData();
+              Object.entries(values).forEach(([key, value]) =>
+                formData.append(key, value)
+              );
 
-            <button
-              type="submit"
-              className="button focus:ring-2 focus:ring-primary focus:ring-offset-2"
-            >
-              Sign In
-            </button>
-          </form>
+              const result = await signIn(formData);
 
+              if (result.success) {
+                router.push("/dashboard");
+                router.refresh();
+              } else {
+                setStatus(result.error);
+              }
+            }}
+          >
+            {({ isSubmitting, status }) => (
+              <Form className="w-full flex flex-col gap-4">
+                {status && (
+                  <div className="text-red-500 text-sm text-center">
+                    {status}
+                  </div>
+                )}
+
+                {isSubmitting && (
+                  <div className="absolute top-0 left-0 w-full h-full bg-[#1286d924] cursor-wait" />
+                )}
+
+                <div>
+                  <Field
+                    name="email"
+                    type="email"
+                    placeholder="Email"
+                    className="input"
+                  />
+                  <ErrorMessage
+                    name="email"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
+
+                <div>
+                  <Field
+                    name="password"
+                    type="password"
+                    placeholder="Password"
+                    className="input"
+                  />
+                  <ErrorMessage
+                    name="password"
+                    component="div"
+                    className="text-red-500 text-sm"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="button focus:ring-2 focus:ring-primary focus:ring-offset-2"
+                >
+                  Sign In
+                </button>
+              </Form>
+            )}
+          </Formik>
+
+          {/* Sign Up link */}
           <div className="text-center">
             <p className="text-gray-600">
-              {"Don't have an account? "}
+              Don’t have an account?{" "}
               <Link
-                href="/auth/signup"
                 className="text-primary hover:underline focus:outline-none cursor-pointer"
+                href="/auth/signup"
               >
-                Sign Up
+                Create Account
               </Link>
             </p>
           </div>
